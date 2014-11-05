@@ -52,8 +52,6 @@ int main()
     command_return = writeKangarooStartCommand( 128, 2, 32, 0, buffer);
     if( write( back_fd, buffer, command_return) < 0 )
         printf("Error writing start to back Channel 2");
- while( flag != 1 )
- {
     //Send Speed Command to Front Motor
     command_return = writeKangarooSpeedCommand( 128, 1, 32, 255, buffer);
     if( write( front_fd, buffer, command_return) < 0 )
@@ -71,7 +69,19 @@ int main()
     if( write( back_fd, buffer, command_return) < 0 )
         printf("Error writing position to back Channel 2");
 
- }
+    command_return = writeKangarooGetCommand( 128, 1, 32, 0, 2, buffer);
+    if(write( back_fd, buffer, command_return) < 0)
+        printf("Error writing get to back channel 1");
+
+    command_return = writeKangarooGetCommand( 128, 2, 32,0,2,buffer);
+    if(write(back_fd, buffer, command_return)<0)
+        printf("Error writing get to back channel 2");
+
+    while(flag != 1)
+    {
+ 
+
+    }
  //Send Speed Command to Front Motor
  command_return = writeKangarooSpeedCommand( 128, 1, 32, 0, buffer);
  if( write( front_fd, buffer, command_return) < 0 )

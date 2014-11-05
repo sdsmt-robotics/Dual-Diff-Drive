@@ -31,6 +31,10 @@ int main()
     int back_fd = open( back_port, O_RDWR| O_NOCTTY | O_NDELAY);
     if( back_fd < 0 )
         printf( "BACK FAILED" );
+    
+    if(signal(SIGINT,sig_handler) == SIG_ERR)
+        printf("\ncan't catch SIGINT\n");
+    
     //Send Start Command to Channels 1 and 2 for front motor controller
     command_return = writeKangarooStartCommand( 128, 1, 32, 0, buffer);
     if( write( front_fd, buffer, command_return ) < 0 )

@@ -15,7 +15,7 @@ size_t writeKangarooGetCommand(uint8_t address, char channel, char flags, char e
 size_t decodecrc14(char channel, char flags, char echo_code, char sequence_code, char parameter, uint32_t value);
 size_t writeKangarooSpeedCommand(uint8_t address, char channel,int flags, int speed, uint8_t*buffer);
 void sig_handler(int signo);
-
+int flag;
 int main()
 {
     uint8_t buffer[30];
@@ -52,7 +52,7 @@ int main()
     command_return = writeKangarooStartCommand( 128, 2, 32, 0, buffer);
     if( write( back_fd, buffer, command_return) < 0 )
         printf("Error writing start to back Channel 2");
- while(true)
+ while( flag != 1 )
  {
     //Send Speed Command to Front Motor
     command_return = writeKangarooSpeedCommand( 128, 1, 32, 255, buffer);
@@ -66,15 +66,33 @@ int main()
     command_return = writeKangarooSpeedCommand( 128, 1, 32, 255, buffer);
     if( write( back_fd, buffer, command_return) < 0 )
         printf("Error writing position to back Channel 1");
-    
+
     command_return = writeKangarooSpeedCommand( 128, 2, 32, 255, buffer);
     if( write( back_fd, buffer, command_return) < 0 )
         printf("Error writing position to back Channel 2");
 
  }
+ //Send Speed Command to Front Motor
+ command_return = writeKangarooSpeedCommand( 128, 1, 32, 0, buffer);
+ if( write( front_fd, buffer, command_return) < 0 )
+     printf("Error writing position to front channel 1");
 
-    close(front_fd);
-    close(back_fd);
+ command_return = writeKangarooSpeedCommand( 128, 2, 32, 0, buffer);
+ if( write( front_fd, buffer, command_return) < 0 )
+     printf("Error writing position to front Channel 2");
+ //Send Speed Command to Back Motor 
+ command_return = writeKangarooSpeedCommand( 128, 1, 32, 0, buffer);
+ if( write( back_fd, buffer, command_return) < 0 )
+     printf("Error writing position to back Channel 1");
+
+ command_return = writeKangarooSpeedCommand( 128, 2, 32, 0, buffer);
+ if( write( back_fd, buffer, command_return) < 0 )
+     printf("Error writing position to back Channel 2");
+
+
+
+ close(front_fd);
+ close(back_fd);
 
 
     return 0;
@@ -267,26 +285,7 @@ void sig_handler(int signo)
 {
     if( signo == SIGINT)
     {
-        //Send Speed Command to Front Motor
-        command_return = writeKangarooSpeedCommand( 128, 1, 32, 0, buffer);
-        if( write( front_fd, buffer, command_return) < 0 )
-            printf("Error writing position to front channel 1");
-
-        command_return = writeKangarooSpeedCommand( 128, 2, 32, 0, buffer);
-        if( write( front_fd, buffer, command_return) < 0 )
-            printf("Error writing position to front Channel 2");
-        //Send Speed Command to Back Motor 
-        command_return = writeKangarooSpeedCommand( 128, 1, 32, 0, buffer);
-        if( write( back_fd, buffer, command_return) < 0 )
-            printf("Error writing position to back Channel 1");
-
-        command_return = writeKangarooSpeedCommand( 128, 2, 32, 0, buffer);
-        if( write( back_fd, buffer, command_return) < 0 )
-            printf("Error writing position to back Channel 2");
-
-
-        
-        exit(0);
+        flag = 1;   
     }
 }
 

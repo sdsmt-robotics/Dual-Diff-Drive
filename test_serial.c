@@ -11,6 +11,7 @@ size_t writeKangarooPositionCommand(uint8_t address, char channel, int32_t posit
 size_t writeKangarooStartCommand(uint8_t address, char channel, char flags, char sequence_code, uint8_t* buffer);
 size_t writeKangarooGetCommand(uint8_t address, char channel, char flags, char echo_code, char parameter, uint8_t* buffer);
 size_t decodecrc14(char channel, char flags, char echo_code, char sequence_code, char parameter, uint32_t value);
+size_t writeKangarooSpeedCommand(uint8_t address, char channel,int flags, int speed, uint8_t*buffer);
 
 
 int main()
@@ -25,44 +26,41 @@ int main()
     if( front_fd < 0 )
         printf( "FRONT FAILED\n");
 
-    printf("FD: %d", front_fd);
-
     int back_fd = open( back_port, O_RDWR| O_NOCTTY | O_NDELAY);
     if( back_fd < 0 )
         printf( "BACK FAILED" );
-
-    printf("FD: %d", back_fd);
-
-    command_return = writeKangarooStartCommand( 128, 1, 0, 0, buffer);
+    //Send Start Command to Channels 1 and 2 for front motor controller
+    command_return = writeKangarooStartCommand( 128, 1, 32, 0, buffer);
     if( write( front_fd, buffer, command_return ) < 0 )
         printf("Error writing start to front channel 1");
     
-    command_return = writeKangarooStartCommand( 128, 2, 0, 0, buffer);
+    command_return = writeKangarooStartCommand( 128, 2, 32, 0, buffer);
     if( write( front_fd, buffer, command_return ) < 0 )
         printf("Error writing start to front channel 2"); 
 
-    
-    command_return = writeKangarooStartCommand( 128, 1, 0, 0, buffer);
+    //Send Start Command to Channels 1 and 2 for back motor controller
+    command_return = writeKangarooStartCommand( 128, 1, 32, 0, buffer);
     if( write( back_fd, buffer, command_return) < 0 )
         printf("Error writing startto back Channel 1");
 
-    command_return = writeKangarooStartCommand( 128, 2, 0, 0, buffer);
+    command_return = writeKangarooStartCommand( 128, 2, 32, 0, buffer);
     if( write( back_fd, buffer, command_return) < 0 )
         printf("Error writing start to back Channel 2");
-
-    command_return = writeKangarooPositionCommand( 128, 1, 255, 255, buffer);
+    
+    //Send Speed Command to Front Motor
+    command_return = writeKangarooSpeedCommand( 128, 1, 32, 255, buffer);
     if( write( front_fd, buffer, command_return) < 0 )
         printf("Error writing position to front channel 1");
     
-    command_return = writeKangarooPositionCommand( 128, 2, 255, 255, buffer);
+    command_return = writeKangarooSpeedCommand( 128, 2, 32, 255, buffer);
     if( write( front_fd, buffer, command_return) < 0 )
         printf("Error writing position to front Channel 2");
-    
-    command_return = writeKangarooPositionCommand( 128, 1, 255, 255, buffer);
+    //Send Speed Command to Back Motor 
+    command_return = writeKangarooSpeedCommand( 128, 1, 32, 255, buffer);
     if( write( back_fd, buffer, command_return) < 0 )
         printf("Error writing position to back Channel 1");
     
-    command_return = writeKangarooPositionCommand( 128, 2, 255, 255, buffer);
+    command_return = writeKangarooSpeedCommand( 128, 2, 32, 255, buffer);
     if( write( back_fd, buffer, command_return) < 0 )
         printf("Error writing position to back Channel 2");
 
@@ -153,14 +151,15 @@ size_t writeKangarooCommand(uint8_t address, uint8_t command, const uint8_t* dat
     size_t i; uint16_t crc;
     buffer[0] = address; 
     buffer[1] = command;
+    buffer[2] = length;
     for(i = 0; i < length; i ++) 
     { 
-        buffer[2 + i] = data[i]; 
+        buffer[3 + i] = data[i]; 
     }
-    crc = crc14(data, 2 + length);
-    buffer[2 + length] = crc & 0x7f;
-    buffer[3 + length] = (crc >> 7) & 0x7f;
-    return 4 + length;
+    crc = crc14(buffer, 3 + length);
+    buffer[3 + length] = crc & 0x7f;
+    buffer[4 + length] = (crc >> 7) & 0x7f;
+    return 5 + length;
 }
 
 
@@ -181,7 +180,6 @@ size_t writeKangarooPositionCommand(uint8_t address, char channel, int32_t posit
     uint8_t data[14]; 
     size_t length = 0;
     data[length ++] = (uint8_t)channel;
-    data[length ++] = 0;
     // move flags
     data[length ++] = 1;
     // Position
@@ -204,10 +202,9 @@ size_t writeKangarooPositionCommand(uint8_t address, char channel, int32_t posit
     \return How many bytes were written ( at most 18). */
 size_t writeKangarooStartCommand(uint8_t address, char channel, char flags, char sequence_code, uint8_t *buffer)
 {
-    uint8_t data[14];
+    uint8_t data[3];
     size_t length = 0;
     data[length++] = (uint8_t)channel;
-    data[length++] = 0;
     //flags
     data[length++] = (uint8_t) flags;
 
@@ -233,7 +230,6 @@ size_t writeKangarooGetCommand( uint8_t address, char channel, char flags, char 
     uint8_t data[14];
     size_t length = 0;
     data[length++] = (uint8_t) channel;
-    data[length++] = 0;
     //flags
     data[length++] = (uint8_t) flags;
 
@@ -246,7 +242,19 @@ size_t writeKangarooGetCommand( uint8_t address, char channel, char flags, char 
     return writeKangarooCommand( address, 35, data, length, buffer);
 }
 
+size_t writeKangarooSpeedCommand(uint8_t address, char channel,int flags, int speed, uint8_t*buffer)
+{
+    uint8_t data[9] = { 0 };
+    size_t length = 0;
+    data[length++] = (uint8_t) channel;
 
+    data[length++] = flags;
+
+    data[length++] = 2;
+
+    length+= bitpackNumber(&data[length], speed);
+    return writeKangarooCommand( address, 36, data, length, buffer);
+}
 
 
 
